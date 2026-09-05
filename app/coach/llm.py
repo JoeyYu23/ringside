@@ -63,7 +63,7 @@ async def _groq(user: str) -> dict | None:
     if not llm_groq.available():
         return None
     try:
-        return await llm_groq.json_completion(SYSTEM, user, SCHEMA, max_tokens=120)
+        return await llm_groq.json_completion(SYSTEM, user, SCHEMA, max_tokens=400)
     except Exception:  # noqa: BLE001
         return None
 
