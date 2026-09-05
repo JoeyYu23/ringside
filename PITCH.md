@@ -22,3 +22,24 @@ Across calls: which openers get through, which objection lines convert, where ca
 
 **2:50 · Close**
 Everything you saw runs locally; history is synthetic and labeled. Speaker separation is by seat, so a phone can be the prospect. Ringside: the coach in your corner.
+
+
+---
+
+# Ringside — 75-second version
+
+*Setup: create a scripted call first (accounts → Brooklyn Auto Group → "Scripted call, no microphone" → Start), then add `?speed=2` to the call URL. Don't press play until 0:15.*
+
+**0:00** Sixty cold calls a day. Most end with "send an email to info@." When you reach a decision maker you get twenty seconds — and the right answer depends on who picked up, their renewal date, and what happened last time you called.
+
+**0:15** Ringside is the coach in your corner. *(press Play)* Memory first: last time reception sent us to the inbox and we lost the call — that line is benched.
+
+**0:25** *(gatekeeper cues scroll)* "What is this regarding?" — the line names her renewal and her boss. She transfers.
+
+**0:35** *(Dan's objection)* "We have a broker." — keep them, fifteen minutes before March. He gives in — and the screen turns amber: **stop selling.** That's where most calls are lost after they're won.
+
+**0:50** *(debrief appears)* Nothing clicked. Outcome, what worked, one thing to fix, and CRM fields verified word for word against the transcript — anything he didn't say is dropped.
+
+**1:00** During the call nothing is generated: fifty-seven curated lines, each needing facts we actually hold; the LLM can only pick a situation, never words; unsure means silent. Under a millisecond, running locally.
+
+**1:10** Across calls it learns which openers get through, where calls die, and what each broker should fix. History is synthetic and labeled. Ringside — the coach in your corner.
