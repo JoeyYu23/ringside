@@ -180,3 +180,14 @@ def test_renewal_month_captured_and_meeting_ask_nudged():
 def test_meeting_slots_are_next_tuesday_and_thursday():
     s = meeting_slots()
     assert s["time_1"].startswith(("Tuesday", "Thursday")) and s["time_2"].startswith(("Tuesday", "Thursday")) and s["time_1"] != s["time_2"]
+
+
+def test_quiet_after_the_meeting_is_confirmed():
+    eng = CoachEngine(FACTS)
+    run(eng, [("prospect", "This is Dan."), ("broker", "Fifteen minutes Tuesday at 10?"), ("prospect", "Alright, fine.")])
+    assert eng.soft_yes
+    assert run(eng, [("prospect", "Yeah okay.")])[0][2] == []          # a second yes: no second "stop selling"
+    run(eng, [("prospect", "dan@brooklynauto.com")])
+    assert eng.meeting_confirmed
+    assert run(eng, [("prospect", "Okay, bye.")])[0][2] == []           # goodbye: silence, not a loop
+    assert run(eng, [("prospect", "Actually never call here again.")])[0][2][0].situation == "hard_no"

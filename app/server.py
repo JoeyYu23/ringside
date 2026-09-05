@@ -32,6 +32,14 @@ memory = Memory(os.environ.get("COACH_DB") or DB_PATH)
 if not memory.accounts():
     seed_mod.seed(memory)
 SESSIONS: dict[str, "CallSession"] = {}
+
+
+@app.on_event("startup")
+async def _warm_stt() -> None:
+    """Load the whisper model once at boot so the first utterance of the first call is not the slow one."""
+    if os.environ.get("COACH_WARM_STT", "1") != "0":
+        from . import stt
+        asyncio.get_event_loop().run_in_executor(None, stt.engine().warm)
 PHONE_WAITING: list[str] = []
 OUTCOME_LABEL = {"meeting_booked": "meeting booked", "meeting_soft_yes": "soft yes, time not locked", "callback_agreed": "callback agreed", "send_info": "asked for info",
                  "gatekeeper_block": "gatekeeper block", "objection_unresolved": "objection unresolved", "not_interested": "not interested", "do_not_call": "do not call", "no_outcome": "no outcome"}
@@ -220,7 +228,7 @@ class CallSession:
     async def _llm_debrief(self, rule: dict) -> None:
         d = await debrief_call(self.transcript, rule, self.engine.facts, [c.as_dict() for c in self.engine.cues])
         if d.get("source") == "llm":
-            d["summary"] = d.get("headline") or summarize(rule, self.engine.facts)
+            d["summary"] = summarize(rule, self.engine.facts)   # the memory line stays short and structured
             self.debrief = d
             memory.end_call(self.id, d.get("outcome") or rule["outcome"], d["summary"], d, ended=self.ended)
             crm = d.get("crm") or {}

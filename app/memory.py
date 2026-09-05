@@ -139,12 +139,13 @@ class Memory:
         if past:
             last = past[0].get("debrief") or {}
             if last.get("next_time"):
-                advice.append(last["next_time"])
+                nt = str(last["next_time"]).strip()
+                advice.append(nt if len(nt) <= 140 else nt[:137].rsplit(" ", 1)[0] + "…")
             elif past[0].get("outcome") == "gatekeeper_block":
                 advice.append(f"Ask for {facts['dm_first']} by name; don't accept 'send an email'." if facts.get("dm_first") else "Get the decision maker's name before anything else.")
             elif past[0].get("outcome") in ("objection_unresolved", "no_outcome"):
                 advice.append("Tie the ask to the renewal date; offer two times.")
-        text = " · ".join(lines[:2] + advice) if past else "First contact — no history."
+        text = " · ".join(lines[:2] + advice[:1]) if past else "First contact — no history."
         return {"facts": facts, "avoid": sorted(avoid), "history": past, "text": text, "n_calls": len(past)}
 
     # ---- learning across calls ------------------------------------------------------------------

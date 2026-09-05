@@ -111,6 +111,10 @@ def classify_prospect(text: str, state) -> Classification:
     if HARD_NO.search(t):
         c.situation, c.signals = "hard_no", {"negative", "final"}
         return c
+    if state.meeting_confirmed:
+        return c   # the meeting is booked: the only thing left to say is goodbye
+    if state.soft_yes and not c.facts.get("email") and SOFT_YES.search(t) and n <= 6:
+        return c   # they already said yes; the coach already said "confirm" — stay quiet
 
     role = state.role
     # --- who is this? -------------------------------------------------------------

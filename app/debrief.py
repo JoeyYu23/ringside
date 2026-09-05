@@ -56,13 +56,20 @@ Rules:
 - The transcript comes from speech recognition: names may be misheard and speakers may overlap. Do not 'correct' a name to something that was not said."""
 
 
+def _line_desc(line_id: str) -> str:
+    from .coach.playbook import load
+    ln = load().lines.get(line_id)
+    return f"{ln.label} → “{ln.text}”" if ln else line_id
+
+
 def _fallback(rule: dict[str, Any], transcript: list[dict], facts: dict) -> dict[str, Any]:
     outcome = rule["outcome"]
     heads = {"meeting_booked": "Meeting booked.", "meeting_soft_yes": "They agreed to meet; time not locked.", "gatekeeper_block": "Never got past the gatekeeper.",
              "objection_unresolved": "Reached the decision maker; objection not resolved.", "do_not_call": "Do-not-call request.", "no_outcome": "No outcome."}
-    happened = [f"Turn {t['turn']}: {t['situation'].replace('_', ' ')}" for t in rule["timeline"][:4]]
+    from .coach.playbook import load
+    happened = [load().label(t["situation"]) for t in rule["timeline"][:4]]
     return {"outcome": outcome, "headline": heads.get(outcome, outcome), "what_happened": happened or ["No recognisable stages."],
-            "what_worked": [f"Line worked: {l}" for l in rule["worked_lines"][:3]], "what_didnt": [f"Line fell flat: {l}" for l in rule["failed_lines"][:3]],
+            "what_worked": [_line_desc(l) for l in rule["worked_lines"][:3]], "what_didnt": [_line_desc(l) for l in rule["failed_lines"][:3]],
             "one_improvement": rule["one_improvement"], "next_time": rule["one_improvement"],
             "crm": {"contact_name": facts.get("dm_name") or facts.get("dm_first"), "gatekeeper_name": facts.get("gk_first"), "email": facts.get("email"),
                     "renewal_month": facts.get("renewal_month"), "next_step": "Send invite" if outcome == "meeting_booked" else None},
