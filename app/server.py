@@ -468,7 +468,7 @@ async def ws_seat(ws: WebSocket, call_id: str, seat: str) -> None:
                 if m.get("type") == "turn" and m.get("speaker") in ("prospect", "broker") and m.get("text"):
                     await s.on_turn(m["speaker"], m["text"])
                 if m.get("type") == "stats":
-                    print(f"[{call_id} {seat} mic] device={m.get('device')!r} muted={m.get('muted')} track={m.get('state')} ctx={m.get('ctx')} rate={m.get('rate')} tx={m.get('tx')} frames={m.get('frames')} peak={m.get('peak')}", flush=True)
+                    print(f"[{call_id} {seat} mic] device={m.get('device')!r} muted={m.get('muted')} track={m.get('state')} ctx={m.get('ctx')} rate={m.get('rate')} tx={m.get('tx')} frames={m.get('frames')} peak={m.get('peak')} ua={m.get('ua')!r}", flush=True)
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:

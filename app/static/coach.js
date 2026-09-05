@@ -105,7 +105,7 @@ async function startMic(onPcm, onLevel, deviceId) {
   ctx.createMediaStreamSource(stream).connect(node);
   const sink = ctx.createGain(); sink.gain.value = 0; node.connect(sink); sink.connect(ctx.destination);
   return {stop: () => { stream.getTracks().forEach(t => t.stop()); ctx.close(); }, device: track.label, track, ctx,
-          stats: () => { const o = {device: track.label, muted: track.muted, state: track.readyState, ctx: ctx.state, rate: ctx.sampleRate, tx: st.tx, frames: st.frames, peak: +st.peak.toFixed(3)}; st.peak = 0; return o; }};
+          stats: () => { const o = {device: track.label, muted: track.muted, state: track.readyState, ctx: ctx.state, rate: ctx.sampleRate, tx: st.tx, frames: st.frames, peak: +st.peak.toFixed(3), ua: navigator.userAgent.slice(0, 90)}; st.peak = 0; return o; }};
 }
 
 // Chrome only lets audio run after a user gesture: create contexts inside the click, and resume them on any later click.
