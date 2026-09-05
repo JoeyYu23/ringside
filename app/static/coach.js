@@ -79,16 +79,33 @@ class Player {
   }
   clear() { this.sources.forEach(s => { try { s.stop(); } catch (e) {} }); this.sources = []; this.next = this.ctx.currentTime; }
 }
-async function startMic(onPcm, onLevel) {
-  const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1}});
+const VIRTUAL_MIC = /blackhole|loopback|soundflower|virtual|aggregate|zoom|teams|obs|cable/i;
+async function listMics() {
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audioinput");
+  return devs;
+}
+function pickMic(devs) {
+  const saved = localStorage.getItem("micId");
+  if (saved && devs.some(d => d.deviceId === saved)) return saved;
+  const real = devs.filter(d => !VIRTUAL_MIC.test(d.label));
+  const pref = real.find(d => /macbook|built-in|internal/i.test(d.label)) || real[0] || devs[0];
+  return pref ? pref.deviceId : undefined;
+}
+async function startMic(onPcm, onLevel, deviceId) {
+  const audio = {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1};
+  if (deviceId) audio.deviceId = {exact: deviceId};
+  const stream = await navigator.mediaDevices.getUserMedia({audio});
+  const track = stream.getAudioTracks()[0];
   const ctx = new AudioContext();
   await ctx.resume();
   await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], {type: "application/javascript"})));
   const node = new AudioWorkletNode(ctx, "p");
-  node.port.onmessage = (e) => { onPcm(e.data.pcm); if (onLevel) onLevel(e.data.peak); };
+  const st = {tx: 0, peak: 0, frames: 0};
+  node.port.onmessage = (e) => { st.tx += e.data.pcm.byteLength; st.frames++; if (e.data.peak > st.peak) st.peak = e.data.peak; onPcm(e.data.pcm); if (onLevel) onLevel(e.data.peak); };
   ctx.createMediaStreamSource(stream).connect(node);
   const sink = ctx.createGain(); sink.gain.value = 0; node.connect(sink); sink.connect(ctx.destination);
-  return {stop: () => { stream.getTracks().forEach(t => t.stop()); ctx.close(); }};
+  return {stop: () => { stream.getTracks().forEach(t => t.stop()); ctx.close(); }, device: track.label, track, ctx,
+          stats: () => { const o = {device: track.label, muted: track.muted, state: track.readyState, ctx: ctx.state, rate: ctx.sampleRate, tx: st.tx, frames: st.frames, peak: +st.peak.toFixed(3)}; st.peak = 0; return o; }};
 }
 
 // Chrome only lets audio run after a user gesture: create contexts inside the click, and resume them on any later click.

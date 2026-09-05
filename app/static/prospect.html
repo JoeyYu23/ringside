@@ -26,7 +26,8 @@ $("answer").onclick = async () => {
   ws.onmessage = (e) => { if (e.data instanceof ArrayBuffer) { if (player) player.play(e.data); return; } const m = JSON.parse(e.data);
     if (m.type === "hello") { if (player.ctx.sampleRate !== m.out_rate) { player = new Player(m.out_rate); window.__players = {p: player}; } player.resume(); $("status").textContent = "on the line — talk"; $("answer").textContent = "Hang up"; $("answer").disabled = false; $("answer").className = "btn big danger"; $("answer").onclick = () => { ws.send(JSON.stringify({type: "hangup"})); }; }
     else if (m.type === "ended") { ended = true; $("status").textContent = "call over"; $("answer").disabled = true; if (mic) mic.stop(); } };
-  try { mic = await startMic((pcm) => { if (ws && ws.readyState === 1) ws.send(pcm); }, (p) => { $("lvl").style.width = Math.min(100, Math.round(p * 300)) + "%"; }); } catch (e) { $("status").textContent = "microphone blocked: " + e.message; }
+  try { mic = await startMic((pcm) => { if (ws && ws.readyState === 1) ws.send(pcm); }, (p) => { $("lvl").style.width = Math.min(100, Math.round(p * 300)) + "%"; }, pickMic(await listMics().catch(() => []))); $("status").textContent = "mic: " + mic.device; } catch (e) { $("status").textContent = "microphone blocked: " + e.message; }
+  setInterval(() => { if (mic && ws && ws.readyState === 1 && !ended) ws.send(JSON.stringify({type: "stats", ...mic.stats()})); }, 5000);
 };
 (async () => { const c = await (await fetch(`/api/calls/${callId}`)).json(); const a = c.account;
   $("who").textContent = `${a.gk_first || "the receptionist"} at ${a.company}`; $("sub").textContent = `${a.industry || ""} · then ${a.dm_name || "the owner"}, the decision maker`;
