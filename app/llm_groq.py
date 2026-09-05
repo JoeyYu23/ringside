@@ -8,8 +8,8 @@ from typing import Any
 import httpx
 
 BASE = os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
-FAST_MODEL = os.environ.get("GROQ_FAST_MODEL", "llama-3.1-8b-instant")
-BIG_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+FAST_MODEL = os.environ.get("GROQ_FAST_MODEL", "openai/gpt-oss-20b")
+BIG_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 _client: httpx.AsyncClient | None = None
 
 

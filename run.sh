@@ -3,7 +3,13 @@
 # (browsers only open a microphone on https or localhost) and for Twilio's webhook.
 set -euo pipefail
 cd "$(dirname "$0")"
-[ -f .env ] && set -a && . ./.env && set +a
+# export non-empty KEY=value lines from .env without clobbering keys already in the shell environment
+if [ -f .env ]; then
+  while IFS='=' read -r k v; do
+    case "$k" in ''|\#*) continue;; esac
+    [ -n "$v" ] && [ -z "${!k:-}" ] && export "$k=$v"
+  done < .env
+fi
 PORT="${PORT:-8080}"
 mkdir -p logs
 if [ "${1:-}" = "--public" ]; then
