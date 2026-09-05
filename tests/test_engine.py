@@ -191,3 +191,14 @@ def test_quiet_after_the_meeting_is_confirmed():
     assert eng.meeting_confirmed
     assert run(eng, [("prospect", "Okay, bye.")])[0][2] == []           # goodbye: silence, not a loop
     assert run(eng, [("prospect", "Actually never call here again.")])[0][2][0].situation == "hard_no"
+
+
+def test_llm_cannot_relabel_the_decision_maker_as_a_gatekeeper():
+    async def llm(text, snap):
+        return Classification(situation="gk_not_available", role_hint="gatekeeper", source="llm")
+
+    eng = CoachEngine(FACTS, llm=llm)
+    run(eng, [("prospect", "This is Dan.")])
+    assert run(eng, [("prospect", "Can you hold on a sec, someone just walked in.")])[0][2] == []   # rule: hold -> silence, LLM not consulted
+    assert run(eng, [("prospect", "Someone just walked in with a delivery for the shop.")])[0][2] == []  # LLM said gk_*: rejected for a DM
+    assert eng.role == "dm"

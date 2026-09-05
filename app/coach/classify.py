@@ -155,6 +155,9 @@ def classify_prospect(text: str, state) -> Classification:
             return c
 
     # --- decision maker ---------------------------------------------------------------
+    if role == "dm" and re.search(r"\b(hold on|hang on|one (sec|second|moment)|give me a (sec|second|minute)|be right back|just a (sec|second|minute))\b", t):
+        c.signals.add("hold")   # they stepped away: say nothing, and don't ask the LLM either
+        return c
     if role == "dm" or c.role_hint is None:
         if state.soft_yes and (c.facts.get("email") or re.search(r"\b(send (me )?(the|an) invite|talk (then|to you then)|see you (then|there)|looking forward)\b", t)):
             c.situation, c.role_hint, c.signals = "meeting_confirmed", "dm", {"positive", "final"}

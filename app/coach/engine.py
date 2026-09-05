@@ -178,14 +178,14 @@ class CoachEngine:
 
     async def _on_prospect(self, turn: Turn, t_in: float) -> list[Cue]:
         c = classify_prospect(turn.text, self)
-        if c.situation is None and self.llm is not None and words(turn.text) >= 4:
+        if c.situation is None and "hold" not in c.signals and self.llm is not None and words(turn.text) >= 4:
             try:
                 alt = await asyncio.wait_for(self.llm(turn.text, self.snapshot()), timeout=self.llm_timeout_s)
             except (asyncio.TimeoutError, Exception):  # noqa: BLE001 — silence beats a late or wrong cue
                 alt = None
-            if alt and alt.situation in self.pb.situations:
-                c = alt
-                c.source = "llm"
+            if alt and alt.situation in self.pb.situations and not (self.role == "dm" and alt.situation.startswith("gk_")):
+                c = alt          # a gatekeeper situation cannot happen once the decision maker is on the line
+                c.source = alt.source if alt.source.startswith("llm") else "llm"
         return self._apply(c, turn, t_in)
 
     def _apply(self, c: Classification, turn: Turn, t_in: float) -> list[Cue]:
