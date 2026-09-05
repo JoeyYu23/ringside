@@ -39,8 +39,9 @@ transcript → line on screen < 100 ms in the browser.
 - **AI voice** — Gemini Live plays the gatekeeper, then (only if the broker earns it) the decision maker, with two
   voices. The gatekeeper transfers only when the caller names the renewal and the decision maker; the DM agrees only to
   a concrete fifteen-minute slot tied to the renewal. So the coach's lines have to actually work.
-- **A judge on a second device** — `/prospect/<call>` on any laptop/phone on the same network. Both seats go through
-  local speech recognition; speaker separation is by seat, not by voice.
+- **A judge on a second device** — `/prospect/<call>` on any laptop/phone. Both seats go through local speech
+  recognition; speaker separation is by seat, not by voice. Phones only open a microphone on https, so start with
+  `./run.sh --public` (Cloudflare quick tunnel) and give the judge the https link the call page shows.
 - **A judge dials a phone number** — Twilio Media Streams bridge (`/twilio/voice`, `/ws/twilio`); the phone is the
   prospect seat. Needs a number + `PUBLIC_HOST`. (Code path present; not exercised without a number.)
 - **Scripted, no microphone** — plays a transcript through the coach with human pacing. The fallback if audio fails.
@@ -50,7 +51,7 @@ transcript → line on screen < 100 ms in the browser.
 ```bash
 cp .env.example .env            # GEMINI_API_KEY for the synthetic prospect; ANTHROPIC_API_KEY / GROQ_API_KEY for LLM jobs
 uv venv --python 3.12 .venv && uv pip install -r requirements.txt
-.venv/bin/uvicorn app.server:app --port 8080     # http://localhost:8080
+./run.sh                        # http://localhost:8080   (./run.sh --public adds an https tunnel URL)
 ```
 
 Speech-to-text for human seats is local (`mlx-whisper`, Apple Silicon); the first start downloads the model.

@@ -241,6 +241,28 @@ class CallSession:
                 pass
 
 
+def _lan_ip() -> str:
+    import socket
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        ip = sock.getsockname()[0]
+        sock.close()
+        return ip
+    except Exception:  # noqa: BLE001
+        return "localhost"
+
+
+def judge_urls(request: Request, call_id: str) -> dict[str, str]:
+    """Where the judge opens the prospect seat: the tunnel (https, works on phones) or the LAN address."""
+    pub = os.environ.get("PUBLIC_HOST")
+    port = request.url.port or 8080
+    out = {"lan": f"http://{_lan_ip()}:{port}/prospect/{call_id}"}
+    if pub:
+        out["public"] = f"https://{pub}/prospect/{call_id}"
+    return out
+
+
 def get_session(call_id: str) -> CallSession:
     s = SESSIONS.get(call_id)
     if s is None:
@@ -330,10 +352,10 @@ async def api_create_call(request: Request) -> JSONResponse:
 
 
 @app.get("/api/calls/{call_id}")
-async def api_call(call_id: str) -> JSONResponse:
+async def api_call(call_id: str, request: Request) -> JSONResponse:
     s = SESSIONS.get(call_id)
     if s:
-        return JSONResponse({**s.hello(), "transcript": s.transcript, "cues": [c.as_dict() for c in s.engine.cues], "events": s.events[-50:]})
+        return JSONResponse({**s.hello(), "transcript": s.transcript, "cues": [c.as_dict() for c in s.engine.cues], "events": s.events[-50:], "judge_urls": judge_urls(request, call_id)})
     rec = memory.call(call_id)
     if not rec:
         raise HTTPException(404)

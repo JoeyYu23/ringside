@@ -89,6 +89,7 @@ $("popout").onclick = (e) => { e.preventDefault(); window.open(`/overlay/${callI
   $("mode").textContent = c.mode; $("foot").textContent = `call ${callId}`;
   if (c.ended) { finish(c.debrief, false); return; }
   if (c.mode === "scripted") { $("start").hidden = true; $("startScripted").hidden = false; }
+  if (c.mode === "human") { const u = c.judge_urls || {}; $("avoidNote").innerHTML = `judge opens <b class="ink2">${esc(u.public || u.lan)}</b>${u.public ? "" : " <span class='muted'>(phones need https — run ./run.sh --public)</span>"}`; }
   if (c.do_not_call) { $("dnc").hidden = false; $("start").disabled = true; $("startScripted").disabled = true; }
   show("pre", true);
 })();
