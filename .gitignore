@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.cache/
+.install-*.log
+data/coach.db
+data/*.db
+logs/
+.env
+tests/audio/
+.pytest_cache/
