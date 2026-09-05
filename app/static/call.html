@@ -50,7 +50,7 @@
 <script src="/static/coach.js"></script>
 <script>
 const callId = location.pathname.split("/").pop();
-let ws, player, mic, hello, started = null, ended = false, timerIv;
+let ws, player, mic, hello, started = null, ended = false, timerIv, callInfo = null;
 const els = {stages: $("stages"), role: $("role"), mom: $("mom"), talk: $("talk"), talkv: $("talkv"), facts: $("facts")};
 function tick(){ if (started && !ended) $("timer").textContent = fmtT((Date.now() - started) / 1000); }
 function show(id, on){ $(id).hidden = !on; }
@@ -59,7 +59,7 @@ function connect(){
   ws.onmessage = (e) => {
     if (e.data instanceof ArrayBuffer) { if (player) player.play(e.data); return; }
     const m = JSON.parse(e.data);
-    if (m.type === "hello") { hello = m; player = new Player(m.out_rate); started = Date.now(); timerIv = setInterval(tick, 500); renderState(m.state, els); $("mode").textContent = m.mode + " prospect"; if (m.mode === "human") $("peer").innerHTML = `judge seat: <a href="/prospect/${callId}" target="_blank">/prospect/${callId}</a>`; if (m.mode === "phone") $("peer").textContent = "waiting for the phone to connect…"; }
+    if (m.type === "hello") { hello = m; if (!player || player.ctx.sampleRate !== m.out_rate) { player = new Player(m.out_rate); window.__players = {p: player}; } player.resume(); started = Date.now(); timerIv = setInterval(tick, 500); renderState(m.state, els); $("mode").textContent = m.mode + " prospect"; if (m.mode === "human") $("peer").innerHTML = `judge seat: <a href="/prospect/${callId}" target="_blank">/prospect/${callId}</a>`; if (m.mode === "phone") $("peer").textContent = "waiting for the phone to connect…"; }
     else if (m.type === "cue") { if (m.kind === "info") return; renderCue($("cue"), m); }
     else if (m.type === "state") renderState(m, els);
     else if (m.type === "transcript") addTranscript($("transcript"), m, false);
@@ -72,8 +72,11 @@ function connect(){
 }
 function finish(d, pending){ ended = true; clearInterval(timerIv); show("live", false); show("debrief", true); renderDebrief($("debrief"), d, {pending: pending && d.source !== "llm"}); if (mic) { mic.stop(); mic = null; } }
 async function start(){
+  // audio must be born inside the click: a context created later stays suspended and you hear nothing
+  player = new Player(callInfo ? callInfo.out_rate : 24000); window.__players = {p: player};
   show("pre", false); show("live", true); renderCue($("cue"), null);
   connect();
+  setInterval(() => { if (!player || ended) return; const s = player.rxBytes / (player.ctx.sampleRate * 2); if (s > 0) $("peer").textContent = `hearing prospect · ${s.toFixed(1)} s`; else if (player.ctx.state !== "running") $("peer").textContent = "audio blocked — click anywhere"; }, 500);
   try { mic = await startMic((pcm) => { if (ws && ws.readyState === 1) ws.send(pcm); }, (p) => { $("lvl").style.width = Math.min(100, Math.round(p * 300)) + "%"; }); }
   catch (e) { $("events").textContent = "microphone blocked: " + e.message; }
 }
@@ -83,7 +86,7 @@ $("end").onclick = () => { if (ws && ws.readyState === 1) ws.send(JSON.stringify
 $("popout").onclick = (e) => { e.preventDefault(); window.open(`/overlay/${callId}`, "ringside-overlay", "width=720,height=260,alwaysOnTop=yes"); };
 (async () => {
   const r = await fetch(`/api/calls/${callId}`); if (!r.ok) { $("company").textContent = "no such call"; return; }
-  const c = await r.json();
+  const c = await r.json(); callInfo = c;
   $("company").textContent = c.account.company; $("sub").textContent = `${c.account.industry || ""} · ${c.broker.name}, ${c.broker.agency}`;
   $("brief").textContent = c.brief.text; $("avoidNote").textContent = c.brief.avoid.length ? `${c.brief.avoid.length} line${c.brief.avoid.length > 1 ? "s" : ""} that failed last time are benched` : "";
   $("mode").textContent = c.mode; $("foot").textContent = `call ${callId}`;

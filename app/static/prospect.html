@@ -21,9 +21,10 @@ const callId = location.pathname.split("/").pop();
 let ws, player, mic, ended = false;
 $("answer").onclick = async () => {
   $("answer").disabled = true; $("status").textContent = "connecting…";
+  player = new Player(16000); window.__players = {p: player};
   ws = new WebSocket(wsUrl(`/ws/seat/${callId}/prospect`)); ws.binaryType = "arraybuffer";
   ws.onmessage = (e) => { if (e.data instanceof ArrayBuffer) { if (player) player.play(e.data); return; } const m = JSON.parse(e.data);
-    if (m.type === "hello") { player = new Player(m.out_rate); $("status").textContent = "on the line — talk"; $("answer").textContent = "Hang up"; $("answer").disabled = false; $("answer").className = "btn big danger"; $("answer").onclick = () => { ws.send(JSON.stringify({type: "hangup"})); }; }
+    if (m.type === "hello") { if (player.ctx.sampleRate !== m.out_rate) { player = new Player(m.out_rate); window.__players = {p: player}; } player.resume(); $("status").textContent = "on the line — talk"; $("answer").textContent = "Hang up"; $("answer").disabled = false; $("answer").className = "btn big danger"; $("answer").onclick = () => { ws.send(JSON.stringify({type: "hangup"})); }; }
     else if (m.type === "ended") { ended = true; $("status").textContent = "call over"; $("answer").disabled = true; if (mic) mic.stop(); } };
   try { mic = await startMic((pcm) => { if (ws && ws.readyState === 1) ws.send(pcm); }, (p) => { $("lvl").style.width = Math.min(100, Math.round(p * 300)) + "%"; }); } catch (e) { $("status").textContent = "microphone blocked: " + e.message; }
 };

@@ -66,8 +66,10 @@ if(this.buf.length>=640){const o=new Int16Array(640);for(let i=0;i<640;i++){cons
 registerProcessor('p',P);`;
 
 class Player {
-  constructor(rate) { this.ctx = new AudioContext({sampleRate: rate}); this.next = 0; this.sources = []; }
+  constructor(rate) { this.ctx = new AudioContext({sampleRate: rate}); this.next = 0; this.sources = []; this.rxBytes = 0; this.resume(); }
+  resume() { if (this.ctx.state !== "running") this.ctx.resume().catch(() => {}); }
   play(buf) {
+    this.rxBytes += buf.byteLength; this.resume();
     const i16 = new Int16Array(buf), f32 = new Float32Array(i16.length);
     for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 32768;
     const ab = this.ctx.createBuffer(1, f32.length, this.ctx.sampleRate); ab.getChannelData(0).set(f32);
@@ -80,6 +82,7 @@ class Player {
 async function startMic(onPcm, onLevel) {
   const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1}});
   const ctx = new AudioContext();
+  await ctx.resume();
   await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], {type: "application/javascript"})));
   const node = new AudioWorkletNode(ctx, "p");
   node.port.onmessage = (e) => { onPcm(e.data.pcm); if (onLevel) onLevel(e.data.peak); };
@@ -87,3 +90,6 @@ async function startMic(onPcm, onLevel) {
   const sink = ctx.createGain(); sink.gain.value = 0; node.connect(sink); sink.connect(ctx.destination);
   return {stop: () => { stream.getTracks().forEach(t => t.stop()); ctx.close(); }};
 }
+
+// Chrome only lets audio run after a user gesture: create contexts inside the click, and resume them on any later click.
+document.addEventListener("click", () => { for (const p of Object.values(window.__players || {})) p.resume(); }, true);
