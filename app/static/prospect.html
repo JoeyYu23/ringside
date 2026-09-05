@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ringside — you're the prospect</title><link rel="stylesheet" href="/static/coach.css">
+<style>
+  .card{max-width:640px;margin:0 auto}
+  .you{font:300 40px/1.1 var(--serif);margin:10px 0 4px}
+  .try{margin-top:16px} .try p{margin:6px 0;color:var(--ink2);font:300 19px/1.35 var(--serif)} .try p::before{content:"“";color:var(--muted)} .try p::after{content:"”";color:var(--muted)}
+  .big{width:100%;padding:18px;font-size:14px;margin-top:18px}
+</style></head><body><div class="wrap"><div class="card">
+<div class="brand">Ring<b>side</b> <span class="muted" style="text-transform:none;letter-spacing:.1em">· prospect seat</span></div>
+<div class="panel" style="margin-top:14px">
+  <div class="kicker">You are</div><div class="you" id="who">…</div><div class="muted" id="sub"></div>
+  <div class="try" id="try"></div>
+  <button class="btn big" id="answer">Answer the phone</button>
+  <div class="row" style="margin-top:12px;justify-content:space-between"><div class="row"><span class="muted">mic</span><div class="level"><i id="lvl"></i></div></div><span class="muted" id="status"></span></div>
+</div>
+<div class="note" style="margin-top:12px">You see nothing the coach shows the broker. Be a real gatekeeper: put them through only if they give you a reason and a name. Then be the owner: say "we're all set", give the renewal month only if asked, and agree only to a specific short slot.</div>
+</div></div>
+<script src="/static/coach.js"></script>
+<script>
+const callId = location.pathname.split("/").pop();
+let ws, player, mic, ended = false;
+$("answer").onclick = async () => {
+  $("answer").disabled = true; $("status").textContent = "connecting…";
+  ws = new WebSocket(wsUrl(`/ws/seat/${callId}/prospect`)); ws.binaryType = "arraybuffer";
+  ws.onmessage = (e) => { if (e.data instanceof ArrayBuffer) { if (player) player.play(e.data); return; } const m = JSON.parse(e.data);
+    if (m.type === "hello") { player = new Player(m.out_rate); $("status").textContent = "on the line — talk"; $("answer").textContent = "Hang up"; $("answer").disabled = false; $("answer").className = "btn big danger"; $("answer").onclick = () => { ws.send(JSON.stringify({type: "hangup"})); }; }
+    else if (m.type === "ended") { ended = true; $("status").textContent = "call over"; $("answer").disabled = true; if (mic) mic.stop(); } };
+  try { mic = await startMic((pcm) => { if (ws && ws.readyState === 1) ws.send(pcm); }, (p) => { $("lvl").style.width = Math.min(100, Math.round(p * 300)) + "%"; }); } catch (e) { $("status").textContent = "microphone blocked: " + e.message; }
+};
+(async () => { const c = await (await fetch(`/api/calls/${callId}`)).json(); const a = c.account;
+  $("who").textContent = `${a.gk_first || "the receptionist"} at ${a.company}`; $("sub").textContent = `${a.industry || ""} · then ${a.dm_name || "the owner"}, the decision maker`;
+  $("try").innerHTML = `<div class="kicker">Things a real gatekeeper says</div><p>${esc(a.company)}, this is ${esc(a.gk_first || "Maria")}.</p><p>What is this regarding?</p><p>Can you just send an email to info@?</p><p>${esc((a.dm_name || "Dan").split(" ")[0])} is in a meeting, can I take a message?</p><div class="kicker" style="margin-top:12px">Then, as ${esc(a.dm_name || "the owner")}</div><p>This is ${esc((a.dm_name || "Dan").split(" ")[0])}.</p><p>We're all set, we have a broker.</p><p>How much cheaper can you get me?</p>`;
+})();
+</script></body></html>

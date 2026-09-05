@@ -62,6 +62,7 @@ def test_demo_path_gatekeeper_to_booked_meeting():
     d = eng.rule_debrief()
     assert d["outcome"] == "meeting_booked"
     assert "gk_send_email.callback_time" in d["worked_lines"]
+    assert d["failed_lines"] == []  # a won call never feeds the avoid-list
     assert d["facts"]["email"] == "dan@brooklynauto.com"
     # broker turns never produce 'say' cues on this clean script
     assert all(not cues for sp, _, cues in res if sp == "broker")

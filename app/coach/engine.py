@@ -278,18 +278,18 @@ class CoachEngine:
         elif self.role == "dm" and self.objection_counts and outcome == "no_outcome":
             outcome = "objection_unresolved"
         worked, failed = [], []
-        sits = {seq: s for seq, s in self.situations}
+        won = outcome in ("meeting_booked", "meeting_soft_yes", "callback_agreed")
+        progress = {"gk_transfer", "dm_identified", "dm_permission_granted", "renewal_given", "soft_yes", "meeting_confirmed"}
         for cue in self.cues:
             if cue.kind != "say" or cue.turn_seq is None:
                 continue
-            following = [s for seq, s in self.situations if seq > cue.turn_seq]
+            following = [s for seq, s in self.situations if seq > cue.turn_seq][:2]
             if not following:
                 continue
-            nxt = following[0]
-            if nxt in ("gk_transfer", "dm_identified", "dm_permission_granted", "renewal_given", "soft_yes", "meeting_confirmed"):
-                worked.append(cue.line_id)
-            elif nxt.startswith("obj_") or nxt in ("gk_not_available", "gk_take_message", "gk_send_email", "hard_no", "gk_all_set"):
-                failed.append(cue.line_id)
+            if following[0] in progress or (len(following) > 1 and following[1] in progress):
+                worked.append(cue.line_id)      # the conversation moved forward within two prospect turns
+            elif not won and (following[0].startswith("obj_") or following[0] in ("gk_not_available", "gk_take_message", "gk_send_email", "hard_no", "gk_all_set")):
+                failed.append(cue.line_id)      # only a lost call teaches us what not to repeat
         failed_stage = None
         if outcome in ("gatekeeper_block", "objection_unresolved", "no_outcome", "do_not_call"):
             failed_stage = "gatekeeper" if self.role != "dm" else ("close" if self.meeting_asked else ("objection" if self.objection_counts else "discovery"))

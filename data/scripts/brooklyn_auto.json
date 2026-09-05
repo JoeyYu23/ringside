@@ -1,0 +1,22 @@
+{
+  "title": "Brooklyn Auto Group — gatekeeper → Dan → 'we have a broker' → booked",
+  "turns": [
+    {"speaker": "prospect", "text": "Brooklyn Auto Group, this is Maria.", "delay": 1.0},
+    {"speaker": "broker", "text": "Hi Maria, Alex Chen with Harbor Insurance calling for Dan. Is he in?", "delay": 2.2},
+    {"speaker": "prospect", "text": "What is this regarding?", "delay": 1.6},
+    {"speaker": "broker", "text": "The March renewal, Dan will know. Is he available?", "delay": 2.0},
+    {"speaker": "prospect", "text": "Can you just send an email to info@brooklynauto.com?", "delay": 1.8},
+    {"speaker": "broker", "text": "Will do. What time is Dan usually free? I'll call back then instead.", "delay": 2.4},
+    {"speaker": "prospect", "text": "Hold on, let me see if he's free.", "delay": 1.5},
+    {"speaker": "prospect", "text": "This is Dan.", "delay": 3.0},
+    {"speaker": "broker", "text": "Dan, Alex Chen with Harbor Insurance. I'll be brief, got twenty seconds?", "delay": 2.0},
+    {"speaker": "prospect", "text": "Sure, go ahead.", "delay": 1.4},
+    {"speaker": "broker", "text": "Your policy renews in March. A second set of eyes before then, worth fifteen minutes?", "delay": 2.6},
+    {"speaker": "prospect", "text": "We're all set, we have a broker.", "delay": 1.6},
+    {"speaker": "broker", "text": "Keep them. A second look before March costs you nothing. Fifteen minutes?", "delay": 2.4},
+    {"speaker": "prospect", "text": "Alright, fine. When?", "delay": 1.6},
+    {"speaker": "broker", "text": "Tuesday at 10, fifteen minutes. What's the best email for the invite?", "delay": 2.2},
+    {"speaker": "prospect", "text": "dan@brooklynauto.com. Okay, bye.", "delay": 1.8},
+    {"speaker": "broker", "text": "Invite's on its way. Thanks Dan, talk Tuesday.", "delay": 1.6}
+  ]
+}

@@ -94,7 +94,8 @@ def _ground(d: dict[str, Any], transcript_text: str) -> dict[str, Any]:
 async def debrief_call(transcript: list[dict], rule: dict[str, Any], facts: dict, cues: list[dict] | None = None, timeout_s: float = 40.0) -> dict[str, Any]:
     """Returns the LLM debrief (grounded) or the rule-based fallback; never raises."""
     base = _fallback(rule, transcript, facts)
-    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+    from . import llm_gemini, llm_groq
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN") or llm_gemini.available() or llm_groq.available()):
         return base
     lines = [f"[{t['speaker']}] {t['text']}" for t in transcript]
     text = "\n".join(lines)
@@ -102,19 +103,39 @@ async def debrief_call(transcript: list[dict], rule: dict[str, Any], facts: dict
     prompt = (f"Account facts before the call (from CRM, may be stale): {json.dumps({k: v for k, v in facts.items() if k in ('company', 'dm_first', 'gk_first', 'renewal_month', 'industry')})}\n"
               f"Rule-based read of the call: outcome={rule['outcome']}, stage_reached={rule['stage_reached']}, talk_ratio={rule['talk_ratio']}, objections={rule['objections']}\n"
               f"Coach lines shown to the broker during the call:\n{cue_lines}\n\nTRANSCRIPT\n{text}")
-    try:
-        client = anthropic.AsyncAnthropic()
-        resp = await asyncio.wait_for(client.messages.parse(model=MODEL, max_tokens=4000, system=SYSTEM,
-                                                            messages=[{"role": "user", "content": prompt}], output_format=Debrief,
-                                                            output_config={"effort": "medium"}), timeout=timeout_s)
-        if resp.stop_reason == "refusal" or resp.parsed_output is None:
-            return base
-        d = resp.parsed_output.model_dump()
-    except Exception as e:  # noqa: BLE001 — the rule-based debrief is always available
-        base["llm_error"] = f"{type(e).__name__}: {e}"[:200]
+    d: dict[str, Any] | None = None
+    provider = "claude"
+    if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        try:
+            client = anthropic.AsyncAnthropic()
+            resp = await asyncio.wait_for(client.messages.parse(model=MODEL, max_tokens=4000, system=SYSTEM,
+                                                                messages=[{"role": "user", "content": prompt}], output_format=Debrief,
+                                                                output_config={"effort": "medium"}), timeout=timeout_s)
+            if resp.stop_reason != "refusal" and resp.parsed_output is not None:
+                d = resp.parsed_output.model_dump()
+        except Exception as e:  # noqa: BLE001 — fall through to Gemini, then to rules
+            base["llm_error"] = f"{type(e).__name__}: {e}"[:200]
+    from . import llm_groq
+    if d is None and llm_groq.available():
+        try:
+            provider = "groq"
+            raw = await asyncio.wait_for(llm_groq.json_completion(SYSTEM, prompt, Debrief.model_json_schema(), model=llm_groq.BIG_MODEL, temperature=0.2), timeout=timeout_s)
+            d = Debrief.model_validate(raw).model_dump()
+        except Exception as e:  # noqa: BLE001
+            base["llm_error"] = (base.get("llm_error", "") + f" | groq {type(e).__name__}: {e}")[:300]
+            d = None
+    if d is None and llm_gemini.available():
+        try:
+            provider = "gemini"
+            raw = await asyncio.wait_for(llm_gemini.json_completion(SYSTEM, prompt, Debrief), timeout=timeout_s)
+            d = Debrief.model_validate(raw).model_dump()
+        except Exception as e:  # noqa: BLE001
+            base["llm_error"] = (base.get("llm_error", "") + f" | gemini {type(e).__name__}: {e}")[:300]
+    if d is None:
         return base
     d = _ground(d, text)
     d["source"] = "llm"
+    d["provider"] = provider
     for k in ("worked_lines", "failed_lines", "failed_stage", "talk_ratio", "fillers", "stage_reached", "timeline", "duration_s"):
         d[k] = rule[k]
     return d
