@@ -159,8 +159,8 @@ def test_hard_no_and_gatekeeper_block_outcomes():
     r = run(eng, [("prospect", "Brooklyn Auto, this is Maria."), ("prospect", "Take us off your list and don't call again.")])
     assert r[1][2][0].situation == "hard_no" and eng.rule_debrief()["outcome"] == "do_not_call"
     eng2 = CoachEngine(FACTS)
-    r2 = run(eng2, [("prospect", "Brooklyn Auto, this is Maria."), ("prospect", "He's in a meeting, can I take a message?")])
-    assert r2[1][2][0].situation in ("gk_not_available", "gk_take_message")
+    r2 = run(eng2, [("prospect", "Brooklyn Auto, this is Maria."), ("broker", "Hi Maria, Alex for Dan please."), ("prospect", "He's in a meeting, can I take a message?")])
+    assert r2[2][2][0].situation in ("gk_not_available", "gk_take_message")
     d = eng2.rule_debrief()
     assert d["outcome"] == "gatekeeper_block" and d["failed_stage"] == "gatekeeper"
     assert "gk_greeting.named_dm" in d["failed_lines"]
