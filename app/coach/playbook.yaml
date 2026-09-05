@@ -1,0 +1,383 @@
+# The coach's entire vocabulary. During a call the coach may only show a line from this file
+# (slots filled from facts the account record or the prospect supplied). It never generates text.
+# No line states a price, premium, coverage term, carrier relationship or anything about the
+# prospect's policy. When the prospect asks for one of those, the line says so out loud.
+#
+# kind: say  = read it out loud       stop = stop talking / change behaviour
+#       ask  = ask this question       info = pre-call brief, not spoken
+# requires: slots that must be known before the line is eligible (never guessed).
+# when: reflex = short knee-jerk objection, first time   genuine = repeated or elaborated   any
+version: 1
+slots: [company, dm_first, gk_first, broker_first, agency, renewal_month, industry, time_1, time_2]
+
+situations:
+  # ---------------------------------------------------------------- gatekeeper
+  gk_greeting:
+    label: "Gatekeeper answered"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_greeting.named_dm
+        requires: [gk_first, dm_first]
+        text: "Hi {gk_first} — {broker_first} calling for {dm_first}. Is {dm_first} in?"
+      - id: gk_greeting.dm_only
+        requires: [dm_first]
+        text: "Morning — {broker_first} for {dm_first}, please. Is {dm_first} available?"
+      - id: gk_greeting.ask_owner
+        requires: []
+        text: "Hi, {broker_first} with {agency}. Who handles the business insurance there?"
+
+  gk_what_regarding:
+    label: "Gatekeeper: 'What is this regarding?'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_what_regarding.renewal_named
+        requires: [dm_first, renewal_month]
+        text: "The {renewal_month} renewal — {dm_first} will know. Is {dm_first} available?"
+      - id: gk_what_regarding.named
+        requires: [dm_first]
+        text: "Your commercial insurance renewal — two minutes with {dm_first}. Is {dm_first} available?"
+      - id: gk_what_regarding.generic
+        requires: []
+        text: "Your business insurance renewal. Who owns that there — the owner?"
+
+  gk_send_email:
+    label: "Gatekeeper: 'Send an email'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_send_email.direct_email
+        requires: [dm_first]
+        text: "Happy to. What's {dm_first}'s direct email — and when are they usually at their desk?"
+      - id: gk_send_email.name_first
+        requires: []
+        text: "Sure. Whose name should it go to, and what's their direct line if we get cut off?"
+      - id: gk_send_email.callback_time
+        requires: [dm_first]
+        text: "Will do. What time is {dm_first} usually free? I'll call back then instead."
+
+  gk_who_reach:
+    label: "Gatekeeper: 'Who are you trying to reach?'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_who_reach.named
+        requires: [dm_first]
+        text: "{dm_first}, please — it's {broker_first} about the insurance renewal."
+      - id: gk_who_reach.role
+        requires: []
+        text: "Whoever signs off on your business insurance — usually the owner or CFO. Who is that?"
+
+  gk_not_available:
+    label: "Gatekeeper: 'Not available / in a meeting'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_not_available.best_time
+        requires: [dm_first]
+        text: "No problem. When is {dm_first} usually at their desk? I'll call back then."
+      - id: gk_not_available.generic
+        requires: []
+        text: "No problem. When's a good time to catch them — mornings or afternoons?"
+
+  gk_take_message:
+    label: "Gatekeeper: 'I'll take a message'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_take_message.callback_instead
+        requires: [dm_first]
+        text: "Rather than a message — what time is {dm_first} usually free? I'll call back."
+      - id: gk_take_message.generic
+        requires: []
+        text: "Thanks — rather than a message, when are they usually free? I'll call back."
+
+  gk_expecting:
+    label: "Gatekeeper: 'Are they expecting your call?'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_expecting.honest
+        requires: [dm_first]
+        text: "Not today — it's about the renewal. {dm_first} will want to hear it. Is {dm_first} in?"
+      - id: gk_expecting.generic
+        requires: []
+        text: "Not yet — it's about your insurance renewal. Who should I speak with?"
+
+  gk_all_set:
+    label: "Gatekeeper: 'We're all set'"
+    role: gatekeeper
+    kind: say
+    lines:
+      - id: gk_all_set.just_the_name
+        requires: [dm_first]
+        text: "Understood. I'm only asking who handles the renewal — is that still {dm_first}?"
+      - id: gk_all_set.generic
+        requires: []
+        text: "Understood — not selling anything today. Who handles the renewal when it comes up?"
+
+  gk_transfer:
+    label: "Gatekeeper is transferring you"
+    role: gatekeeper
+    kind: stop
+    lines:
+      - id: gk_transfer.get_ready_named
+        requires: [dm_first]
+        text: "Say thanks. Then: '{dm_first}, {broker_first} with {agency} — got twenty seconds?'"
+      - id: gk_transfer.get_ready
+        requires: []
+        text: "Say thanks. When they pick up: name, agency, 'got twenty seconds?' — then stop."
+
+  # ---------------------------------------------------------------- decision maker
+  dm_identified:
+    label: "Decision maker on the line"
+    role: dm
+    kind: say
+    lines:
+      - id: dm_identified.twenty_seconds
+        requires: [dm_first]
+        text: "{dm_first}, {broker_first} with {agency}. I'll be brief — got twenty seconds?"
+      - id: dm_identified.generic
+        requires: []
+        text: "{broker_first} with {agency}. I'll be brief — got twenty seconds?"
+
+  dm_permission_granted:
+    label: "They gave you twenty seconds"
+    role: dm
+    kind: say
+    lines:
+      - id: dm_permission_granted.renewal_known
+        requires: [renewal_month]
+        text: "Your policy renews in {renewal_month}. A second set of eyes before then — worth fifteen minutes?"
+      - id: dm_permission_granted.generic
+        requires: []
+        text: "One question: when does your business policy renew?"
+
+  obj_all_set:
+    label: "'We're all set'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_all_set.reflex
+        when: reflex
+        requires: []
+        text: "Most people I call are. When's your renewal? I'll call ninety days before, not now."
+      - id: obj_all_set.genuine
+        when: genuine
+        requires: []
+        text: "Good — keep what works. A second set of eyes at renewal costs nothing. When is it?"
+
+  obj_not_interested:
+    label: "'Not interested'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_not_interested.reflex
+        when: reflex
+        requires: []
+        text: "Fair — I called out of the blue. Thirty seconds, then you decide?"
+      - id: obj_not_interested.genuine
+        when: genuine
+        requires: []
+        text: "Understood. Before I go — when does your policy renew? I'll note it and leave you alone."
+
+  obj_have_broker:
+    label: "'We already have a broker'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_have_broker.keep_them
+        requires: []
+        text: "Good — keep them. When did they last re-market your policy? That's all I'd do."
+      - id: obj_have_broker.second_look
+        requires: [renewal_month]
+        text: "Keep them. A second look before {renewal_month} costs you nothing. Fifteen minutes?"
+
+  obj_no_time:
+    label: "'I don't have time / bad time'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_no_time.one_question
+        requires: []
+        text: "Then one question and I'm gone: when does your policy renew?"
+      - id: obj_no_time.reschedule
+        requires: [time_1]
+        text: "Fair. Fifteen minutes {time_1} instead — I'll send the invite. Work?"
+
+  obj_send_info:
+    label: "'Send me some information'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_send_info.what_matters
+        requires: []
+        text: "Will do. So it's not generic — what matters most to you at renewal, price or coverage?"
+      - id: obj_send_info.then_meet
+        requires: [time_1]
+        text: "Sure. Fifteen minutes {time_1} beats a PDF you won't read. Which do you prefer?"
+
+  obj_renewal_far:
+    label: "'Renewal isn't for months'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_renewal_far.best_time
+        requires: [time_1, time_2]
+        text: "That's the best time to look — no pressure. Fifteen minutes: {time_1} or {time_2}?"
+      - id: obj_renewal_far.generic
+        requires: []
+        text: "Perfect — early is when a review actually helps. Fifteen minutes this week?"
+
+  renewal_given:
+    label: "They told you the renewal date"
+    role: dm
+    kind: say
+    lines:
+      - id: renewal_given.tie_to_meeting
+        requires: [renewal_month, time_1, time_2]
+        text: "{renewal_month} — so we'd want to look soon. Fifteen minutes: {time_1} or {time_2}?"
+      - id: renewal_given.tie_generic
+        requires: [time_1, time_2]
+        text: "Then a quick review now makes sense. Fifteen minutes: {time_1} or {time_2}?"
+
+  obj_price:
+    label: "Asked for a price / quote"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_price.no_guessing
+        requires: [time_1]
+        text: "Honestly, I won't guess on the phone. That's what the fifteen minutes is for — {time_1}?"
+      - id: obj_price.no_guessing_generic
+        requires: []
+        text: "Honestly, I won't guess on the phone — I'd need to see the policy. Fifteen minutes?"
+
+  obj_coverage_question:
+    label: "Asked a coverage / carrier / policy question"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_coverage_question.dont_guess
+        requires: []
+        text: "Good question — I don't know without seeing your policy, and I won't guess. Can I look?"
+
+  obj_call_back_later:
+    label: "'Call me back later / next quarter'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_call_back_later.pin_it
+        requires: [time_1]
+        text: "Sure. So I don't chase you — {time_1}? I'll send an invite."
+      - id: obj_call_back_later.generic
+        requires: []
+        text: "Sure. What day works? I'll send an invite so I'm not chasing you."
+
+  obj_bad_experience:
+    label: "'Brokers are all the same'"
+    role: dm
+    kind: say
+    lines:
+      - id: obj_bad_experience.acknowledge
+        requires: []
+        text: "Fair — you've been burned. What went wrong last time? I'll tell you if I'd be different."
+
+  hard_no:
+    label: "'Don't call again / remove us'"
+    role: any
+    kind: stop
+    lines:
+      - id: hard_no.comply
+        requires: []
+        text: "Say: 'Understood — I'll remove you. Sorry to bother you.' Then hang up."
+
+  soft_yes:
+    label: "Soft yes — stop selling"
+    role: dm
+    kind: stop
+    lines:
+      - id: soft_yes.confirm_time
+        requires: [time_1]
+        text: "Stop selling. Confirm: '{time_1}, fifteen minutes. What's the best email for the invite?'"
+      - id: soft_yes.confirm_generic
+        requires: []
+        text: "Stop selling. Confirm the time, get the email, say thanks, hang up."
+
+  meeting_confirmed:
+    label: "Meeting time agreed"
+    role: dm
+    kind: stop
+    lines:
+      - id: meeting_confirmed.wrap
+        requires: []
+        text: "Done. 'Invite's on its way — thanks, talk then.' Hang up first."
+
+  # ---------------------------------------------------------------- broker-side nudges
+  ask_discovery:
+    label: "Ask about the renewal"
+    role: dm
+    kind: ask
+    lines:
+      - id: ask_discovery.renewal
+        requires: []
+        text: "Ask: 'When does your policy renew?'"
+
+  ask_meeting:
+    label: "Ask for the meeting now"
+    role: dm
+    kind: ask
+    lines:
+      - id: ask_meeting.two_options
+        requires: [time_1, time_2]
+        text: "Ask now: 'Fifteen minutes — {time_1} or {time_2}?'"
+      - id: ask_meeting.generic
+        requires: []
+        text: "Ask now: 'Fifteen minutes this week — what day works?'"
+
+  broker_ramble:
+    label: "You're rambling"
+    role: any
+    kind: stop
+    lines:
+      - id: broker_ramble.wrap
+        requires: []
+        text: "Wrap it up. Ask a question."
+
+  broker_pitching_after_yes:
+    label: "They said yes — stop pitching"
+    role: dm
+    kind: stop
+    lines:
+      - id: broker_pitching_after_yes.stop
+        requires: []
+        text: "They already said yes. Stop. Confirm the time and get the email."
+
+  broker_numbers:
+    label: "Careful — no numbers on the phone"
+    role: any
+    kind: stop
+    lines:
+      - id: broker_numbers.careful
+        requires: []
+        text: "Careful — no savings or prices on the phone. Offer the review instead."
+
+  broker_filler:
+    label: "Filler words"
+    role: any
+    kind: stop
+    lines:
+      - id: broker_filler.slow
+        requires: []
+        text: "Slow down. Fewer 'um's — pause instead."
+
+  # ---------------------------------------------------------------- memory (pre-call, not spoken)
+  memory_brief:
+    label: "Before you dial"
+    role: any
+    kind: info
+    lines:
+      - id: memory_brief.generic
+        requires: []
+        text: "{brief}"
