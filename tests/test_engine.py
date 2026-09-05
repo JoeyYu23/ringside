@@ -202,3 +202,10 @@ def test_llm_cannot_relabel_the_decision_maker_as_a_gatekeeper():
     assert run(eng, [("prospect", "Can you hold on a sec, someone just walked in.")])[0][2] == []   # rule: hold -> silence, LLM not consulted
     assert run(eng, [("prospect", "Someone just walked in with a delivery for the shop.")])[0][2] == []  # LLM said gk_*: rejected for a DM
     assert eng.role == "dm"
+
+
+def test_call_with_no_broker_speech_is_aborted_not_a_gatekeeper_block():
+    eng = CoachEngine(FACTS)
+    run(eng, [("prospect", "Brooklyn Auto Group, this is Maria.")])
+    d = eng.rule_debrief()
+    assert d["outcome"] == "aborted" and "microphone" in d["one_improvement"]

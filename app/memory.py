@@ -126,7 +126,7 @@ class Memory:
     # ---- what the coach needs before the dial ------------------------------------------------
     def brief(self, account_id: str) -> dict[str, Any]:
         acct = self.account(account_id) or {}
-        past = self.calls(account_id, limit=5)
+        past = [c for c in self.calls(account_id, limit=8) if c.get("outcome") != "aborted"][:5]
         avoid: set[str] = set()
         lines = []
         for c in past:
@@ -150,7 +150,7 @@ class Memory:
 
     # ---- learning across calls ------------------------------------------------------------------
     def insights(self) -> dict[str, Any]:
-        calls = self.calls(limit=1000)
+        calls = [c for c in self.calls(limit=1000) if c.get("outcome") != "aborted"]
         n = len(calls)
         booked = {"meeting_booked", "meeting_soft_yes"}
         by_outcome = {}

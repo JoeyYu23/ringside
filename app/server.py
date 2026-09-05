@@ -42,7 +42,7 @@ async def _warm_stt() -> None:
         asyncio.get_event_loop().run_in_executor(None, stt.engine().warm)
 PHONE_WAITING: list[str] = []
 OUTCOME_LABEL = {"meeting_booked": "meeting booked", "meeting_soft_yes": "soft yes, time not locked", "callback_agreed": "callback agreed", "send_info": "asked for info",
-                 "gatekeeper_block": "gatekeeper block", "objection_unresolved": "objection unresolved", "not_interested": "not interested", "do_not_call": "do not call", "no_outcome": "no outcome"}
+                 "gatekeeper_block": "gatekeeper block", "objection_unresolved": "objection unresolved", "not_interested": "not interested", "do_not_call": "do not call", "no_outcome": "no outcome", "aborted": "aborted (no broker audio)"}
 
 
 def summarize(rule: dict, facts: dict) -> str:

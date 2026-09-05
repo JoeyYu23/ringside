@@ -11,7 +11,7 @@ import anthropic
 from pydantic import BaseModel, Field
 
 MODEL = os.environ.get("COACH_LLM_MODEL", "claude-opus-5")
-OUTCOMES = ("meeting_booked", "meeting_soft_yes", "callback_agreed", "send_info", "gatekeeper_block", "objection_unresolved", "not_interested", "do_not_call", "no_outcome")
+OUTCOMES = ("meeting_booked", "meeting_soft_yes", "callback_agreed", "send_info", "gatekeeper_block", "objection_unresolved", "not_interested", "do_not_call", "no_outcome", "aborted")
 Outcome = Literal[OUTCOMES]
 
 
@@ -64,7 +64,7 @@ def _line_desc(line_id: str) -> str:
 
 def _fallback(rule: dict[str, Any], transcript: list[dict], facts: dict) -> dict[str, Any]:
     outcome = rule["outcome"]
-    heads = {"meeting_booked": "Meeting booked.", "meeting_soft_yes": "They agreed to meet; time not locked.", "gatekeeper_block": "Never got past the gatekeeper.",
+    heads = {"aborted": "Aborted — no speech was heard from your side.", "meeting_booked": "Meeting booked.", "meeting_soft_yes": "They agreed to meet; time not locked.", "gatekeeper_block": "Never got past the gatekeeper.",
              "objection_unresolved": "Reached the decision maker; objection not resolved.", "do_not_call": "Do-not-call request.", "no_outcome": "No outcome."}
     from .coach.playbook import load
     happened = [load().label(t["situation"]) for t in rule["timeline"][:4]]
@@ -101,6 +101,8 @@ def _ground(d: dict[str, Any], transcript_text: str) -> dict[str, Any]:
 async def debrief_call(transcript: list[dict], rule: dict[str, Any], facts: dict, cues: list[dict] | None = None, timeout_s: float = 40.0) -> dict[str, Any]:
     """Returns the LLM debrief (grounded) or the rule-based fallback; never raises."""
     base = _fallback(rule, transcript, facts)
+    if rule["outcome"] == "aborted":
+        return base   # nothing to debrief
     from . import llm_gemini, llm_groq
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN") or llm_gemini.available() or llm_groq.available()):
         return base

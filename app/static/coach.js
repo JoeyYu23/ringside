@@ -2,7 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const STAGES = ["intro", "gatekeeper", "discovery", "objection", "close"];
 const OUTCOME = {meeting_booked: ["Meeting booked", "good"], meeting_soft_yes: ["Soft yes", "good"], callback_agreed: ["Callback agreed", "good"], send_info: ["Send info", "warn"],
-  gatekeeper_block: ["Gatekeeper block", "bad"], objection_unresolved: ["Objection unresolved", "warn"], not_interested: ["Not interested", "bad"], do_not_call: ["Do not call", "bad"], no_outcome: ["No outcome", "dim"]};
+  gatekeeper_block: ["Gatekeeper block", "bad"], objection_unresolved: ["Objection unresolved", "warn"], not_interested: ["Not interested", "bad"], do_not_call: ["Do not call", "bad"], no_outcome: ["No outcome", "dim"], aborted: ["Aborted — no mic audio", "dim"]};
 
 function wsUrl(path) { return (location.protocol === "https:" ? "wss://" : "ws://") + location.host + path; }
 function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }

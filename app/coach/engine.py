@@ -269,7 +269,9 @@ class CoachEngine:
     def rule_debrief(self) -> dict[str, Any]:
         """Deterministic debrief: outcome, timeline, which lines were followed by a positive next turn."""
         outcome = self.outcome_hint or ("gatekeeper_block" if self.role == "gatekeeper" and self.stage in ("gatekeeper", "intro") else "no_outcome")
-        if self.meeting_confirmed:
+        if self.broker_words == 0:
+            outcome = "aborted"   # nothing ever came from the broker's side (dead microphone, hung up at once): not a real call
+        elif self.meeting_confirmed:
             outcome = "meeting_booked"
         elif self.soft_yes:
             outcome = "meeting_soft_yes"
@@ -294,6 +296,8 @@ class CoachEngine:
         if outcome in ("gatekeeper_block", "objection_unresolved", "no_outcome", "do_not_call"):
             failed_stage = "gatekeeper" if self.role != "dm" else ("close" if self.meeting_asked else ("objection" if self.objection_counts else "discovery"))
         improvements = []
+        if outcome == "aborted":
+            improvements.append("No speech was heard from your side — check the microphone and try again.")
         tr = self.talk_ratio()
         if tr > 0.65:
             improvements.append(f"You talked {int(tr*100)}% of the call — ask a question every two sentences.")
