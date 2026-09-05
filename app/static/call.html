@@ -22,6 +22,11 @@
   <div class="brief" id="brief"></div>
   <div id="dnc" class="banner" hidden>Do not call — they asked to be removed. This call will not start.</div>
   <div class="row" style="margin-top:8px">
+    <button class="btn ghost" id="testmic">Test microphone</button>
+    <div class="level"><i id="prelvl"></i></div><span class="muted" id="micstatus"></span>
+  </div>
+  <div id="micerr" class="banner" hidden></div>
+  <div class="row" style="margin-top:12px">
     <button class="btn" id="start">Start call</button>
     <button class="btn ghost" id="startScripted" hidden>Play scripted call (no mic)</button>
     <span class="muted" id="avoidNote"></span>
@@ -71,9 +76,20 @@ function connect(){
   ws.onclose = () => { if (!ended) $("events").textContent = "connection closed"; };
 }
 function finish(d, pending){ ended = true; clearInterval(timerIv); show("live", false); show("debrief", true); renderDebrief($("debrief"), d, {pending: pending && d.source !== "llm"}); if (mic) { mic.stop(); mic = null; } }
+let preMic = null, prePeak = 0;
+$("testmic").onclick = async () => {
+  $("micerr").hidden = true; $("micstatus").textContent = "opening…";
+  try {
+    if (preMic) { preMic.stop(); preMic = null; }
+    preMic = await startMic(() => {}, (p) => { $("prelvl").style.width = Math.min(100, Math.round(p * 300)) + "%"; if (p > prePeak) prePeak = p; }, localStorage.getItem("micId"));
+    $("micstatus").textContent = `listening on "${preMic.device}" — say something`;
+    setTimeout(() => { if (preMic) $("micstatus").textContent = prePeak > 0.02 ? `✓ "${preMic.device}" hears you` : `no sound from "${preMic.device}" — allow the mic for this site, or pick another input in the call screen`; }, 4000);
+  } catch (e) { $("micerr").textContent = "Microphone blocked: " + e.message + ". Allow it for this site (address bar / Safari → Settings for localhost), then try again."; $("micerr").hidden = false; $("micstatus").textContent = ""; }
+};
 async function start(){
   // audio must be born inside the click: a context created later stays suspended and you hear nothing
   player = new Player(callInfo ? callInfo.out_rate : 24000); window.__players = {p: player};
+  if (preMic) { preMic.stop(); preMic = null; }
   show("pre", false); show("live", true); renderCue($("cue"), null);
   connect();
   setInterval(() => { if (!player || ended) return; const s = player.rxBytes / (player.ctx.sampleRate * 2); if (s > 0) $("peer").textContent = `hearing prospect · ${s.toFixed(1)} s`; else if (player.ctx.state !== "running") $("peer").textContent = "audio blocked — click anywhere"; }, 500);
@@ -88,7 +104,7 @@ async function openMic(deviceId){
     $("micsel").innerHTML = devs.map(d => `<option value="${d.deviceId}" ${d.deviceId === cur ? "selected" : ""}>${esc(d.label || "microphone")}</option>`).join("");
     $("micsel").onchange = () => { localStorage.setItem("micId", $("micsel").value); openMic($("micsel").value); };
     $("events").textContent = `mic: ${mic.device}`;
-  } catch (e) { $("events").textContent = "microphone blocked: " + e.message; $("micwarn").textContent = "allow the microphone for this site (lock icon in the address bar), then reload"; }
+  } catch (e) { $("events").textContent = "MICROPHONE BLOCKED: " + e.message; $("micwarn").textContent = "allow the microphone for this site, then click End call and start again"; }
 }
 setInterval(() => { if (mic && ws && ws.readyState === 1 && !ended) ws.send(JSON.stringify({type: "stats", ...mic.stats()})); }, 5000);
 $("start").onclick = start;

@@ -92,9 +92,22 @@ function pickMic(devs) {
   return pref ? pref.deviceId : undefined;
 }
 async function startMic(onPcm, onLevel, deviceId) {
-  const audio = {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1};
-  if (deviceId) audio.deviceId = {exact: deviceId};
-  const stream = await navigator.mediaDevices.getUserMedia({audio});
+  const base = {echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1};
+  let stream = null;
+  if (deviceId && typeof deviceId === "string" && deviceId.length > 3) {
+    try { stream = await navigator.mediaDevices.getUserMedia({audio: {...base, deviceId: {exact: deviceId}}}); } catch (e) { stream = null; }
+  }
+  if (!stream) stream = await navigator.mediaDevices.getUserMedia({audio: base});   // permission prompt happens here
+  // after permission the device list has labels/ids: move off a virtual device if the browser picked one
+  try {
+    const devs = await listMics();
+    const cur = stream.getAudioTracks()[0].getSettings().deviceId;
+    const want = deviceId && devs.some(d => d.deviceId === deviceId) ? deviceId : pickMic(devs);
+    if (want && want !== cur && want.length > 3) {
+      const s2 = await navigator.mediaDevices.getUserMedia({audio: {...base, deviceId: {exact: want}}});
+      stream.getTracks().forEach(t => t.stop()); stream = s2;
+    }
+  } catch (e) { /* keep whatever we have */ }
   const track = stream.getAudioTracks()[0];
   const ctx = new AudioContext();
   await ctx.resume();
