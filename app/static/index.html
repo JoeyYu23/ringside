@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ringside — accounts</title><link rel="stylesheet" href="/static/coach.css">
+<style>
+  .hero{display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-items:end;margin-bottom:26px}
+  .hero p{color:var(--ink2);font:300 18px/1.5 var(--serif);margin:6px 0 0;max-width:560px}
+  .cols{display:grid;grid-template-columns:1fr 2.2fr 1fr;gap:16px}
+  .chips{display:flex;flex-direction:column;gap:8px}
+  .chip{padding:10px 12px;border:1px solid var(--line);border-radius:4px;cursor:pointer;color:var(--ink2)} .chip:hover{border-color:#3a4048} .chip.sel{border-color:var(--ink);color:var(--ink)}
+  .chip small{display:block;color:var(--muted);margin-top:2px}
+  .mem{color:var(--muted);font-size:12px;max-width:380px} .mem.warn{color:var(--stop)} .mem.bad{color:var(--bad)}
+  .caps{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .start{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+</style></head><body><div class="wrap">
+<div class="hero">
+  <div><div class="brand">Ring<b>side</b></div><h1 class="display">The coach in your corner while you're on the call.</h1>
+    <p>One line you can say out loud, under a second after they stop talking. Never a price, never a policy claim — only lines from the playbook, only facts we actually have.</p></div>
+  <div class="panel"><div class="kicker">How it works</div><ul class="ink2" style="padding-left:16px;margin:8px 0 0;font-size:13px;line-height:1.6">
+    <li>Pick a broker, an account, and who plays the prospect.</li><li>Read the line. That's it — zero interaction during the call.</li><li>Hang up: debrief + CRM fields appear on their own.</li><li>Call the same company again: the coach remembers what failed.</li></ul></div>
+</div>
+<div class="cols">
+  <div class="panel"><div class="kicker">Broker</div><div class="chips" id="brokers"></div>
+    <div class="kicker" style="margin-top:20px">Who plays the prospect</div><div class="chips" id="modes"></div></div>
+  <div class="panel"><div class="row" style="justify-content:space-between"><div class="kicker">Account</div><span class="muted" id="acctNote"></span></div>
+    <table><thead><tr><th>Company</th><th>Decision maker</th><th>Renewal</th><th>Memory</th></tr></thead><tbody id="accounts"></tbody></table></div>
+  <div class="panel"><div class="kicker">Ready</div><div id="summary" class="ink2" style="font:300 20px/1.35 var(--serif);margin-top:8px">Pick a broker and an account.</div>
+    <div class="start"><button class="btn" id="go" disabled>Start call</button><span class="muted" id="hint"></span></div>
+    <div class="kicker" style="margin-top:22px">On this machine</div><div class="caps" id="caps"></div>
+    <div class="note" style="margin-top:14px">All call history shown here is synthetic seed data and is labeled as such in <a href="/insights">insights</a>.</div></div>
+</div>
+</div>
+<script src="/static/coach.js"></script>
+<script>
+let data, broker = null, account = null, mode = "synthetic";
+const MODES = [["synthetic", "AI voice (gatekeeper → owner)", "Gemini Live plays Maria, then Dan. They only let you through if your lines work."],
+  ["human", "A judge on a second device", "Open /prospect/… on any laptop or phone on the same network; they play the gatekeeper."],
+  ["phone", "A judge dials a phone number", "Twilio number → this server. Needs PUBLIC_HOST + a number pointed at /twilio/voice."],
+  ["scripted", "Scripted call, no microphone", "Plays a transcript through the coach with human pacing. The no-audio fallback."]];
+function render(){
+  $("brokers").innerHTML = data.brokers.map(b => `<div class="chip ${broker === b.id ? "sel" : ""}" data-id="${b.id}">${esc(b.name)}<small>${esc(b.agency)}</small></div>`).join("");
+  $("brokers").querySelectorAll(".chip").forEach(c => c.onclick = () => { broker = c.dataset.id; render(); });
+  $("modes").innerHTML = MODES.map(([k, l, d]) => { const off = (k === "synthetic" && !data.capabilities.synthetic) || (k === "phone" && !data.capabilities.phone); return `<div class="chip ${mode === k ? "sel" : ""}" data-id="${k}" style="${off ? "opacity:.45" : ""}">${l}<small>${d}${off ? " (not configured)" : ""}</small></div>`; }).join("");
+  $("modes").querySelectorAll(".chip").forEach(c => c.onclick = () => { mode = c.dataset.id; render(); });
+  $("accounts").innerHTML = data.accounts.map(a => `<tr class="pick ${account === a.id ? "sel" : ""}" data-id="${a.id}"><td><b style="font-weight:500">${esc(a.company)}</b><br><span class="muted">${esc(a.industry || "")}</span></td><td>${esc(a.dm_name || "—")}<br><span class="muted">GK ${esc(a.gk_first || "?")}</span></td><td>${esc(a.renewal_month || "unknown")}</td><td><div class="mem ${a.do_not_call ? "bad" : a.avoid.length ? "warn" : ""}">${a.n_calls ? esc(a.brief) : "First contact — no history."}${a.avoid.length ? `<br>${a.avoid.length} line${a.avoid.length > 1 ? "s" : ""} benched` : ""}</div></td></tr>`).join("");
+  $("accounts").querySelectorAll("tr").forEach(r => r.onclick = () => { account = r.dataset.id; render(); });
+  const a = data.accounts.find(x => x.id === account), b = data.brokers.find(x => x.id === broker);
+  $("go").disabled = !(a && b) || (a && a.do_not_call);
+  $("summary").textContent = a && b ? `${b.name.split(" ")[0]} calls ${a.company}${a.do_not_call ? " — blocked: do-not-call on file." : "."}` : "Pick a broker and an account.";
+  $("hint").textContent = a && b && mode === "human" ? "You'll get a link for the judge's device after start." : "";
+  $("caps").innerHTML = [["local speech-to-text (whisper, offline)", true], ["synthetic prospect voice", data.capabilities.synthetic], ["LLM debrief + fallback classifier", data.capabilities.llm], ["phone (Twilio)", data.capabilities.phone]].map(([l, ok]) => `<span class="pill ${ok ? "good" : "dim"}">${l}</span>`).join("");
+}
+$("go").onclick = async () => {
+  const r = await fetch("/api/calls", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({account_id: account, broker_id: broker, mode})});
+  const j = await r.json(); if (!r.ok) { $("hint").textContent = j.detail || "could not start"; return; }
+  location.href = j.urls.call;
+};
+(async () => { data = await (await fetch("/api/accounts")).json(); broker = data.brokers[0]?.id || null; render(); $("acctNote").textContent = `${data.accounts.length} accounts`; })();
+</script></body></html>

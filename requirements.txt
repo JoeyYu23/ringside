@@ -1,0 +1,14 @@
+anthropic==1.4.0
+fastapi==0.141.1
+google-genai==2.22.0
+httpx==0.28.1
+mlx-whisper==0.4.3
+numpy==2.5.2
+playwright==1.62.0
+pydantic==2.13.5
+pytest==9.1.1
+pytest-asyncio==1.4.0
+python-dotenv==1.2.3
+pyyaml==6.0.3
+uvicorn==0.52.4
+websockets==16.1.1

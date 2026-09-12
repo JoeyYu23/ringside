@@ -1,0 +1,15 @@
+{
+  "title": "Greenpoint Fabrication — broker rambles, pitches a number, loses it",
+  "turns": [
+    {"speaker": "prospect", "text": "Greenpoint Fabrication, Sam speaking.", "delay": 1.0},
+    {"speaker": "broker", "text": "Hey Sam, Priya from Harbor Insurance, is Lena around?", "delay": 2.0},
+    {"speaker": "prospect", "text": "She's on another call. Can I take a message?", "delay": 1.6},
+    {"speaker": "broker", "text": "Um, sure, or actually, um, when is she usually free?", "delay": 2.2},
+    {"speaker": "prospect", "text": "Hold on, she just got off. Let me put you through.", "delay": 1.6},
+    {"speaker": "prospect", "text": "This is Lena.", "delay": 2.5},
+    {"speaker": "broker", "text": "Hi Lena, so I'm calling because we work with a lot of manufacturers in Brooklyn and we've got really strong markets for property and general liability and workers comp and honestly we've been saving people like twenty percent on their premiums and I just wanted to see if you'd be open to hearing about some options because our carriers are really competitive right now and", "delay": 2.0},
+    {"speaker": "prospect", "text": "How would you know that? You haven't seen my policy. Not interested.", "delay": 1.8},
+    {"speaker": "broker", "text": "Fair, I called out of the blue. Thirty seconds, then you decide?", "delay": 2.0},
+    {"speaker": "prospect", "text": "No. Not interested, goodbye.", "delay": 1.5}
+  ]
+}

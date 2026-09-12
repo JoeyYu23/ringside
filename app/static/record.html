@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ringside — call record</title><link rel="stylesheet" href="/static/coach.css">
+<style>.t{display:grid;grid-template-columns:1fr 1fr;gap:16px}.turn{margin:6px 0;display:flex;gap:10px}.turn b{min-width:72px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#5c636c;padding-top:3px}.turn.prospect span{color:var(--ink2)}.turn.broker span{color:var(--muted)}.cueline{margin:4px 0 10px 82px;border-left:3px solid var(--line);padding:4px 10px;font:300 16px/1.3 var(--serif);color:var(--ink)}.cueline.stop{border-color:var(--stop);color:var(--stop)}</style></head>
+<body><div class="wrap"><div class="row" style="justify-content:space-between"><div><div class="brand">Ring<b>side</b></div><h1 class="display" style="font-size:30px" id="h">…</h1><div class="muted" id="sub"></div></div><a href="/insights">insights</a></div>
+<div class="t"><div class="panel"><div class="kicker">Transcript with the coach's lines</div><div id="tx"></div></div><div id="debrief"></div></div></div>
+<script src="/static/coach.js"></script>
+<script>(async () => { const id = location.pathname.split("/").pop(); const r = await (await fetch(`/api/calls/${id}`)).json(); const rec = r.record || {}; $("h").textContent = (r.account || {}).company || id; $("sub").textContent = `${(r.broker || {}).name || ""} · ${new Date((rec.ended || 0) * 1000).toLocaleString()} · ${rec.synthetic ? "synthetic" : rec.mode}`;
+  const cuesByTurn = {}; (rec.cues || []).forEach(c => { (cuesByTurn[c.turn_seq] = cuesByTurn[c.turn_seq] || []).push(c); });
+  $("tx").innerHTML = (rec.turns || []).map(t => `<div class="turn ${t.speaker}"><b>${t.speaker}</b><span>${esc(t.text)}</span></div>` + (cuesByTurn[t.seq] || []).map(c => `<div class="cueline ${c.kind}">${esc(c.text)}</div>`).join("")).join("") || `<div class="muted">no transcript stored (seed call)</div>`;
+  if (rec.debrief) renderDebrief($("debrief"), rec.debrief); })();</script></body></html>

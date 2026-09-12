@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ringside — insights</title><link rel="stylesheet" href="/static/coach.css">
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}
+  .kpi{border:1px solid var(--line);border-radius:5px;padding:12px 14px;background:var(--bg2)} .kpi .k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)} .kpi .v{font:300 30px/1.1 var(--serif);margin-top:4px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px} .cell{display:flex;align-items:center;gap:10px} .cell .bar{flex:1}
+  .coach{font:300 15px/1.4 var(--serif);color:var(--ink2)}
+  @media (max-width:900px){.kpis{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+<div class="row" style="justify-content:space-between"><div><div class="brand">Ring<b>side</b> <span class="muted" style="text-transform:none;letter-spacing:.1em">· manager view</span></div><h1 class="display" style="font-size:34px">What the calls are teaching us</h1></div><div><a href="/">← accounts</a></div></div>
+<div class="note" id="synth"></div>
+<div class="kpis" id="kpis"></div>
+<div class="two">
+  <div class="panel"><div class="kicker">Openers → meetings</div><table id="openers"></table></div>
+  <div class="panel"><div class="kicker">Where calls die</div><table id="stages"></table><div class="kicker" style="margin-top:18px">Lead segments → meetings</div><table id="segments"></table></div>
+  <div class="panel"><div class="kicker">Objection lines that move the call forward</div><table id="objs"></table></div>
+  <div class="panel"><div class="kicker">Brokers</div><table id="brokers"></table><div class="kicker" style="margin-top:18px">Objections the playbook doesn't have yet</div><table id="cands"></table></div>
+</div>
+</div>
+<script src="/static/coach.js"></script>
+<script>
+const bar = (r, cls) => `<div class="cell"><div class="bar"><i class="${cls || ""}" style="width:${Math.round(r * 100)}%"></i></div><span class="muted" style="min-width:40px;text-align:right">${Math.round(r * 100)}%</span></div>`;
+(async () => {
+  const d = await (await fetch("/api/insights")).json();
+  const booked = (d.outcomes.meeting_booked || 0) + (d.outcomes.meeting_soft_yes || 0);
+  const gkBlocked = d.outcomes.gatekeeper_block || 0;
+  $("synth").textContent = `${d.synthetic_calls} of ${d.n_calls} calls in this view are synthetic seed data (labeled synthetic=1 in the database); the rest were made through this app.`;
+  $("kpis").innerHTML = [["calls", d.n_calls], ["meetings", booked], ["book rate", d.n_calls ? Math.round(100 * booked / d.n_calls) + "%" : "—"], ["past the gatekeeper", d.n_calls ? Math.round(100 * (1 - gkBlocked / d.n_calls)) + "%" : "—"], ["do-not-call", d.outcomes.do_not_call || 0]].map(([k, v]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  $("openers").innerHTML = `<tr><th>line</th><th>calls</th><th>→ meeting</th></tr>` + d.openers.filter(o => o.key.startsWith("gk_greeting")).map(o => `<tr><td>${o.key}</td><td>${o.n}</td><td>${bar(o.rate, o.rate >= .3 ? "good" : o.rate >= .15 ? "warn" : "bad")}</td></tr>`).join("");
+  const tot = Object.values(d.fail_stage).reduce((a, b) => a + b, 0) || 1;
+  $("stages").innerHTML = `<tr><th>stage</th><th>lost calls</th></tr>` + Object.entries(d.fail_stage).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${k}</td><td>${bar(v / tot, "bad")}</td></tr>`).join("");
+  $("segments").innerHTML = `<tr><th>industry</th><th>calls</th><th>→ meeting</th></tr>` + d.segments.map(s => `<tr><td>${esc(s.key)}</td><td>${s.n}</td><td>${bar(s.rate, s.rate >= .3 ? "good" : s.rate >= .15 ? "warn" : "bad")}</td></tr>`).join("");
+  $("objs").innerHTML = `<tr><th>situation</th><th>line</th><th>used</th><th>moved forward</th></tr>` + d.objection_lines.filter(o => o.n >= 2).map(o => `<tr><td class="muted">${o.situation.replace(/^(obj|gk)_/, "").replace(/_/g, " ")}</td><td>${o.key.split(".")[1]}</td><td>${o.n}</td><td>${bar(o.rate, o.rate >= .5 ? "good" : o.rate >= .3 ? "warn" : "bad")}</td></tr>`).join("");
+  $("brokers").innerHTML = `<tr><th>broker</th><th>calls</th><th>book rate</th><th>talk share</th><th>fillers</th><th>coaching note</th></tr>` + Object.entries(d.brokers).map(([k, b]) => { const notes = []; if (b.talk_ratio > .6) notes.push(`talks ${Math.round(b.talk_ratio * 100)}% — ask a question every two sentences`); if (b.ask_rate < .5) notes.push("asks for the meeting too rarely"); if (b.fillers_per_call > 6) notes.push("filler words: pause instead"); if (!notes.length) notes.push("keep doing what you're doing"); return `<tr><td>${esc(k)}</td><td>${b.n}</td><td>${bar(b.book_rate, b.book_rate >= .25 ? "good" : "warn")}</td><td>${Math.round(b.talk_ratio * 100)}%</td><td>${b.fillers_per_call}</td><td class="coach">${notes.join("; ")}</td></tr>`; }).join("");
+  $("cands").innerHTML = `<tr><th>heard</th><th>times</th><th>status</th></tr>` + (d.objection_candidates.length ? d.objection_candidates.map(c => `<tr><td>“${esc(c.text)}”</td><td>${c.seen}</td><td><span class="pill dim">${c.status}</span></td></tr>`).join("") : `<tr><td class="muted" colspan="3">none yet</td></tr>`);
+})();
+</script></body></html>

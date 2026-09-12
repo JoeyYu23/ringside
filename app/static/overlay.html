@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Ringside overlay</title><link rel="stylesheet" href="/static/coach.css">
+<style>body{background:#07080a}.wrap{padding:14px 18px}.cue{min-height:120px}.cue .line{font-size:34px}.stages span{font-size:9px;padding:6px 0 4px}</style></head>
+<body><div class="wrap"><div class="stages" id="stages"></div><div class="cue silent" id="cue"><div class="lab">listening</div><div class="line">· · ·</div></div></div>
+<script src="/static/coach.js"></script>
+<script>
+const callId = location.pathname.split("/").pop();
+const ws = new WebSocket(wsUrl(`/ws/events/${callId}`));
+ws.onmessage = (e) => { const m = JSON.parse(e.data);
+  if (m.type === "hello") { renderStages($("stages"), m.state.stage); const last = (m.cues || []).filter(c => c.kind !== "info").pop(); if (last) renderCue($("cue"), last); }
+  else if (m.type === "cue" && m.kind !== "info") renderCue($("cue"), m);
+  else if (m.type === "state") renderStages($("stages"), m.stage);
+  else if (m.type === "ended") { const d = m.debrief; $("cue").className = "cue info"; $("cue").innerHTML = `<div class="lab">call over · ${esc(d.outcome.replace(/_/g, " "))}</div><div class="line">${esc(d.one_improvement)}</div>`; } };
+</script></body></html>
